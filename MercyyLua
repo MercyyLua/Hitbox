@@ -1,0 +1,173 @@
+-- Variables
+_G.HeadSize = 50
+_G.Enabled = false
+_G.RainbowMode = false
+_G.SelectedColor = Color3.fromRGB(255, 255, 255)
+_G.TeamCheck = false
+local hue = 0
+
+-- Function to reset hitboxes
+local function resetHitboxes()
+    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+        if player ~= game.Players.LocalPlayer then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Size = Vector3.new(2, 2, 1)  -- Default size
+                    hrp.Transparency = 1
+                    hrp.Color = Color3.fromRGB(255, 255, 255)
+                    hrp.Material = Enum.Material.Plastic
+                    hrp.CanCollide = true
+                end
+            end)
+        end
+    end
+end
+
+-- Rainbow mode loop
+game:GetService("RunService").RenderStepped:Connect(function()
+    if _G.Enabled then
+        if _G.RainbowMode then
+            hue = (hue + 0.002) % 1
+            _G.SelectedColor = Color3.fromHSV(hue, 1, 1)
+        end
+
+        for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+            if player ~= game.Players.LocalPlayer then
+                if _G.TeamCheck then
+                    if player.Team == game.Players.LocalPlayer.Team then
+                        continue
+                    end
+                end
+                pcall(function()
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Size = Vector3.new(_G.HeadSize, _G.HeadSize, _G.HeadSize)
+                        hrp.Transparency = 0.7
+                        hrp.Color = _G.SelectedColor
+                        hrp.Material = Enum.Material.Neon
+                        hrp.CanCollide = false
+                    end
+                end)
+            end
+        end
+    end
+end)
+
+-- GUI Setup (Always visible UI)
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "MercyyHitboxUI"
+ScreenGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+Frame.Size = UDim2.new(0, 200, 0, 180)  -- Smaller size
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+
+-- Draggable bar at the top
+local DragBar = Instance.new("Frame", Frame)
+DragBar.Size = UDim2.new(1, 0, 0, 30)  -- Height of the drag bar
+DragBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DragBar.BorderSizePixel = 0
+
+-- Enable dragging for the frame
+Frame.Draggable = true
+Frame.Selectable = true
+DragBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Frame.Position = UDim2.new(0, input.Position.X - Frame.Size.X.Offset / 2, 0, input.Position.Y - DragBar.Size.Y.Offset)
+    end
+end)
+
+-- UI Elements for controlling hitboxes
+local EnableBtn = Instance.new("TextButton", Frame)
+EnableBtn.Size = UDim2.new(1, 0, 0, 35)
+EnableBtn.Position = UDim2.new(0, 0, 0, 30)
+EnableBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+EnableBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+EnableBtn.Text = "Enable: OFF"
+EnableBtn.Font = Enum.Font.GothamBold
+EnableBtn.TextSize = 14
+EnableBtn.MouseButton1Click:Connect(function()
+    _G.Enabled = not _G.Enabled
+    EnableBtn.Text = "Enable: " .. (_G.Enabled and "ON" or "OFF")
+    if not _G.Enabled then
+        resetHitboxes()
+    end
+end)
+
+local RainbowBtn = Instance.new("TextButton", Frame)
+RainbowBtn.Size = UDim2.new(1, 0, 0, 35)
+RainbowBtn.Position = UDim2.new(0, 0, 0, 65)
+RainbowBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+RainbowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RainbowBtn.Text = "Rainbow Mode: OFF"
+RainbowBtn.Font = Enum.Font.GothamBold
+RainbowBtn.TextSize = 14
+RainbowBtn.MouseButton1Click:Connect(function()
+    _G.RainbowMode = not _G.RainbowMode
+    RainbowBtn.Text = "Rainbow Mode: " .. (_G.RainbowMode and "ON" or "OFF")
+    -- Disable color selection when rainbow mode is enabled
+    if _G.RainbowMode then
+        _G.SelectedColor = Color3.fromHSV(hue, 1, 1)
+    end
+end)
+
+local colors = {
+    {"Red", Color3.fromRGB(255, 0, 0)},
+    {"Green", Color3.fromRGB(0, 255, 0)},
+    {"Blue", Color3.fromRGB(0, 0, 255)},
+    {"White", Color3.fromRGB(255, 255, 255)},
+    {"Yellow", Color3.fromRGB(255, 255, 0)},
+    {"Pink", Color3.fromRGB(255, 105, 180)},
+}
+local currentColor = 4
+
+local ColorBtn = Instance.new("TextButton", Frame)
+ColorBtn.Size = UDim2.new(1, 0, 0, 35)
+ColorBtn.Position = UDim2.new(0, 0, 0, 100)
+ColorBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ColorBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ColorBtn.Text = "Color: White"
+ColorBtn.Font = Enum.Font.GothamBold
+ColorBtn.TextSize = 14
+ColorBtn.MouseButton1Click:Connect(function()
+    if not _G.RainbowMode then  -- Only change color if Rainbow Mode is OFF
+        currentColor = currentColor % #colors + 1
+        local colorData = colors[currentColor]
+        ColorBtn.Text = "Color: " .. colorData[1]
+        _G.SelectedColor = colorData[2]
+    end
+end)
+
+local SizeSlider = Instance.new("TextBox", Frame)
+SizeSlider.Size = UDim2.new(1, 0, 0, 35)
+SizeSlider.Position = UDim2.new(0, 0, 0, 135)
+SizeSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SizeSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeSlider.Text = "Size: " .. _G.HeadSize
+SizeSlider.Font = Enum.Font.GothamBold
+SizeSlider.TextSize = 14
+SizeSlider.ClearTextOnFocus = false
+SizeSlider.FocusLost:Connect(function()
+    local size = tonumber(SizeSlider.Text)
+    if size then
+        _G.HeadSize = math.clamp(size, 2, 100)
+        SizeSlider.Text = "Size: " .. _G.HeadSize
+    end
+end)
+
+local TeamCheckBtn = Instance.new("TextButton", Frame)
+TeamCheckBtn.Size = UDim2.new(1, 0, 0, 35)
+TeamCheckBtn.Position = UDim2.new(0, 0, 0, 170)
+TeamCheckBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TeamCheckBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeamCheckBtn.Text = "Team Check: OFF"
+TeamCheckBtn.Font = Enum.Font.GothamBold
+TeamCheckBtn.TextSize = 14
+TeamCheckBtn.MouseButton1Click:Connect(function()
+    _G.TeamCheck = not _G.TeamCheck
+    TeamCheckBtn.Text = "Team Check: " .. (_G.TeamCheck and "ON" or "OFF")
+end)
